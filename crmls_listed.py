@@ -5,10 +5,10 @@ import requests
 from datetime import datetime
 
 # Define the API endpoint
-url = 'https://api-trestle.corelogic.com/trestle/odata/Property'
+url = '# Auth endpoint removed for security.'
 
 # Get token from IDX Exchange secure proxy instead of exposing CoreLogic credentials
-auth_endpoint = 'https://idxexchange.com/internal-api/trestle_token.php?key=IDXEXCHANGE2026_CHANGE_THIS'
+auth_endpoint = '# Auth endpoint removed for security.'
 
 response = requests.get(auth_endpoint, timeout=30)
 response.raise_for_status()
