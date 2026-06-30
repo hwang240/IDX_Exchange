@@ -6,9 +6,10 @@ This script completes the first half of the Weeks 2-3 handbook work:
 1. Inspect the combined listing and sold datasets.
 2. Document property type values and Residential filtering.
 3. Create null-count and high-missing-value reports.
-4. Produce numeric distribution summaries.
-5. Answer the suggested intern EDA questions.
-6. Save filtered/validated Residential datasets as new local CSV files.
+4. Produce numeric distribution summaries, histograms, and boxplots.
+5. Identify extreme numeric outliers for later handling.
+6. Answer the suggested intern EDA questions.
+7. Save filtered/validated Residential datasets as new local CSV files.
 
 Confidential CSV outputs are written to outputs/week2_3/, which is ignored by
 Git through the repository .gitignore.
@@ -37,9 +38,6 @@ NUMERIC_FIELDS = [
     "DaysOnMarket",
     "YearBuilt",
 ]
-
-DELIVERABLE_NUMERIC_FIELDS = ["ClosePrice", "LivingArea", "DaysOnMarket"]
-
 
 def clean_property_type(series: pd.Series) -> pd.Series:
     """Normalize property type values for consistent counting/filtering."""
@@ -138,6 +136,55 @@ def numeric_summary(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
         for percentile, value in values.quantile(percentiles).items():
             summary[f"p{int(percentile * 100):02d}"] = value
         rows.append(summary)
+
+    return pd.DataFrame(rows)
+
+
+def extreme_outlier_report(df: pd.DataFrame, dataset_name: str, fields: list[str]) -> pd.DataFrame:
+    """
+    Identify extreme outliers using the 3x IQR rule.
+
+    Standard boxplots often flag values outside 1.5x IQR. For this early EDA
+    step, the report uses a stricter 3x IQR threshold to identify the most
+    extreme values for later review, not automatic deletion.
+    """
+    rows = []
+
+    for field in fields:
+        if field not in df.columns:
+            continue
+
+        values = pd.to_numeric(df[field], errors="coerce").dropna()
+        if values.empty:
+            continue
+
+        q1 = values.quantile(0.25)
+        q3 = values.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - (3 * iqr)
+        upper_bound = q3 + (3 * iqr)
+        lower_outliers = values[values < lower_bound]
+        upper_outliers = values[values > upper_bound]
+        total_outliers = len(lower_outliers) + len(upper_outliers)
+
+        rows.append(
+            {
+                "dataset": dataset_name,
+                "field": field,
+                "non_null_count": int(values.count()),
+                "q1": q1,
+                "q3": q3,
+                "iqr": iqr,
+                "extreme_lower_bound": lower_bound,
+                "extreme_upper_bound": upper_bound,
+                "low_extreme_outlier_count": int(len(lower_outliers)),
+                "high_extreme_outlier_count": int(len(upper_outliers)),
+                "total_extreme_outlier_count": int(total_outliers),
+                "extreme_outlier_pct": total_outliers / len(values) * 100,
+                "min_value": values.min(),
+                "max_value": values.max(),
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -352,6 +399,7 @@ def write_markdown_report(
     listings_nulls: pd.DataFrame,
     sold_numeric: pd.DataFrame,
     listings_numeric: pd.DataFrame,
+    outliers: pd.DataFrame,
     sale_to_list: pd.Series,
     date_issues: pd.Series,
     dom: pd.Series,
@@ -463,6 +511,12 @@ def write_markdown_report(
         "",
         listings_numeric.to_markdown(index=False),
         "",
+        "## Extreme outlier review",
+        "",
+        "Extreme outliers are flagged using a stricter 3x IQR rule. These rows are marked for later review, not removed at this stage.",
+        "",
+        outliers.to_markdown(index=False),
+        "",
     ]
 
     (OUTPUT_DIR / "week2_3_validation_report.md").write_text("\n".join(lines))
@@ -492,6 +546,13 @@ def main() -> None:
     print("Creating numeric distribution summaries...")
     sold_numeric = numeric_summary(sold_residential, NUMERIC_FIELDS)
     listings_numeric = numeric_summary(listings_residential, NUMERIC_FIELDS)
+    outliers = pd.concat(
+        [
+            extreme_outlier_report(sold_residential, "sold", NUMERIC_FIELDS),
+            extreme_outlier_report(listings_residential, "listings", NUMERIC_FIELDS),
+        ],
+        ignore_index=True,
+    )
 
     print("Answering suggested intern questions...")
     sale_to_list = sale_to_list_report(sold_residential)
@@ -523,14 +584,15 @@ def main() -> None:
     )
     sold_numeric.to_csv(OUTPUT_DIR / "sold_numeric_summary.csv", index=False)
     listings_numeric.to_csv(OUTPUT_DIR / "listings_numeric_summary.csv", index=False)
+    outliers.to_csv(OUTPUT_DIR / "numeric_extreme_outlier_report.csv", index=False)
     sale_to_list.to_csv(OUTPUT_DIR / "sold_above_below_list_price.csv")
     date_issues.to_csv(OUTPUT_DIR / "sold_date_consistency_report.csv")
     dom.to_csv(OUTPUT_DIR / "sold_days_on_market_distribution.csv")
     counties.to_csv(OUTPUT_DIR / "county_median_price_report.csv", index=False)
     field_groups.to_csv(OUTPUT_DIR / "field_grouping_report.csv", index=False)
 
-    save_optional_plots("sold", sold_residential, DELIVERABLE_NUMERIC_FIELDS)
-    save_optional_plots("listings", listings_residential, DELIVERABLE_NUMERIC_FIELDS)
+    save_optional_plots("sold", sold_residential, NUMERIC_FIELDS)
+    save_optional_plots("listings", listings_residential, NUMERIC_FIELDS)
 
     write_markdown_report(
         sold_residential,
@@ -541,6 +603,7 @@ def main() -> None:
         listings_nulls,
         sold_numeric,
         listings_numeric,
+        outliers,
         sale_to_list,
         date_issues,
         dom,

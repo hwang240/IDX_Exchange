@@ -45,8 +45,11 @@ Both outputs cover every calendar month from January 2024 through May 2026.
   columns, and market-analysis vs. metadata/support fields.
 * Calculated PropertyType shares from the raw monthly files before the Week 1
   Residential filter.
-* Produced numeric distribution summaries for key fields including
-  `ClosePrice`, `LivingArea`, and `DaysOnMarket`.
+* Produced numeric distribution summaries, histograms, and boxplots for the
+  handbook's key numeric fields: `ClosePrice`, `ListPrice`,
+  `OriginalListPrice`, `LivingArea`, `LotSizeAcres`, `BedroomsTotal`,
+  `BathroomsTotalInteger`, `DaysOnMarket`, and `YearBuilt`.
+* Flagged extreme numeric outliers using a 3x IQR rule for later review.
 * Answered the suggested intern EDA questions for price, days on market,
   sale-to-list behavior, date consistency, and county median prices.
 * Saved local validation outputs, reports, and supporting plots under
