@@ -54,6 +54,13 @@ Both outputs cover every calendar month from January 2024 through May 2026.
   sale-to-list behavior, date consistency, and county median prices.
 * Saved local validation outputs, reports, and supporting plots under
   `outputs/week2_3/`. These generated files are excluded from Git.
+* Added the mortgage rate enrichment script for the second Weeks 2-3
+  deliverable.
+* Fetched the FRED `MORTGAGE30US` 30-year fixed mortgage rate series, converted
+  weekly observations to monthly averages, and merged the monthly rates onto
+  both combined datasets.
+* Validated that every sold and listing row received a mortgage rate after the
+  merge.
 
 Verified Weeks 2-3 validation highlights:
 
@@ -70,6 +77,9 @@ Verified Weeks 2-3 validation highlights:
 | Sold below list price | 42.54% |
 | Sold at list price | 17.36% |
 | Rows with apparent date consistency issues | 520 |
+| Sold mortgage-rate missing values after merge | 0 |
+| Listing mortgage-rate missing values after merge | 0 |
+| Mortgage-rate months merged | January 2024 through May 2026 |
 
 ## Running the Scripts
 
@@ -99,12 +109,24 @@ The script reads `listings.csv`, `sold.csv`, and the confidential source files
 in `csv/`. It saves local reports and filtered validation outputs under
 `outputs/week2_3/`, which is excluded from Git.
 
+To run the Weeks 2-3 mortgage rate enrichment script:
+
+```bash
+python week2_3_mortgage_rates.py
+```
+
+The script fetches the FRED `MORTGAGE30US` series, averages weekly observations
+to monthly mortgage rates, merges the rates onto `sold.csv` using `CloseDate`
+and onto `listings.csv` using `ListingContractDate`, and validates that there
+are no missing mortgage rates after the merge. The enriched CSV outputs are
+saved locally under `outputs/week2_3/` and excluded from Git.
+
 ## Next Steps
 
-The remaining Weeks 2-3 task is mortgage rate enrichment: fetch the FRED
-`MORTGAGE30US` series, resample it to monthly averages, merge it onto both
-combined datasets, validate that mortgage rate values are not missing, and save
-new enriched local CSVs.
+The next project phase is Weeks 4-5 data cleaning and preparation. This will
+focus on date conversions, unnecessary column removal, missing value handling,
+numeric type checks, invalid numeric value flags, date consistency flags, and
+geographic data quality checks.
 
 ## Important Note
 
