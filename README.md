@@ -13,13 +13,13 @@ The project focuses on working with CRMLS listing and sold transaction data, pre
 * Set up FTP access and downloaded the available monthly CRMLS files.
 * Set up Python in VS Code and installed the required packages.
 * Reviewed the listing and sold extraction workflows.
-* Collected listing and sold files from January 2024 through May 2026.
+* Collected listing and sold files from January 2024 through June 2026.
 
 ### Week 1 - Monthly Dataset Aggregation
 
 * Created separate aggregation scripts for listings and sold transactions.
-* Validated that all 29 required months are present.
-* Combined the monthly files from January 2024 through May 2026.
+* Validated that all 30 required months are present.
+* Combined the monthly files from January 2024 through June 2026.
 * Selected one sold file per month so duplicate `_filled` versions are not
   counted twice.
 * Removed the two extra coordinate columns from `_filled` sold files.
@@ -33,10 +33,10 @@ Verified Week 1 output:
 
 | Dataset | Rows before filter | Residential rows |
 | --- | ---: | ---: |
-| Listings | 897,612 | 571,589 |
-| Sold | 639,877 | 430,436 |
+| Listings | 901,610 | 573,911 |
+| Sold | 665,426 | 447,998 |
 
-Both outputs cover every calendar month from January 2024 through May 2026.
+Both outputs cover every calendar month from January 2024 through June 2026.
 
 ### Weeks 2-3 - Dataset Structuring and Validation
 
@@ -66,20 +66,47 @@ Verified Weeks 2-3 validation highlights:
 
 | Question | Result |
 | --- | --- |
-| Sold Residential share before filtering | 67.27% |
-| Listing Residential share before filtering | 63.68% |
-| Sold dataset shape after Week 1 filter | 430,436 rows x 82 columns |
-| Listings dataset shape after Week 1 filter | 571,589 rows x 73 columns |
+| Sold Residential share before filtering | 67.32% |
+| Listing Residential share before filtering | 63.65% |
+| Sold dataset shape after Week 1 filter | 447,998 rows x 82 columns |
+| Listings dataset shape after Week 1 filter | 573,911 rows x 73 columns |
 | Median sold close price | $825,000 |
-| Average sold close price | $1,193,108 |
+| Average sold close price | $1,192,694 |
 | Median Days on Market | 18 days |
-| Sold above list price | 40.10% |
-| Sold below list price | 42.54% |
-| Sold at list price | 17.36% |
-| Rows with apparent date consistency issues | 520 |
+| Sold above list price | 40.05% |
+| Sold below list price | 42.58% |
+| Sold at list price | 17.37% |
+| Rows with apparent date consistency issues | 530 |
 | Sold mortgage-rate missing values after merge | 0 |
 | Listing mortgage-rate missing values after merge | 0 |
-| Mortgage-rate months merged | January 2024 through May 2026 |
+| Mortgage-rate months merged | January 2024 through June 2026 |
+
+### Week 4 - Data Cleaning and Preparation Starter
+
+* Started the Weeks 4-5 cleaning script using the June-inclusive,
+  mortgage-enriched sold and listing datasets.
+* Converted key date fields to datetime format: `CloseDate`,
+  `PurchaseContractDate`, `ListingContractDate`, and
+  `ContractStatusChangeDate`.
+* Converted core numeric fields to numeric types, including price, living area,
+  days on market, bedrooms, bathrooms, coordinates, and mortgage rate.
+* Dropped columns that were completely empty while keeping core analysis
+  fields protected.
+* Added invalid numeric value flags for non-positive close price, non-positive
+  living area, negative days on market, and negative bedrooms or bathrooms.
+* Added date consistency flags: `listing_after_close_flag`,
+  `purchase_after_close_flag`, and `negative_timeline_flag`.
+* Added geographic quality flags for missing coordinates, zero coordinates,
+  positive longitude, and implausible California coordinate values.
+* Saved starter cleaned datasets and reports locally under `outputs/week4_5/`.
+  These generated files are excluded from Git.
+
+Verified Week 4 starter cleaning output:
+
+| Dataset | Rows before | Rows after | Columns before | Columns after | All-null columns dropped |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sold | 447,998 | 447,998 | 87 | 91 | 8 |
+| Listings | 573,911 | 573,911 | 78 | 82 | 8 |
 
 ## Running the Scripts
 
@@ -121,12 +148,22 @@ and onto `listings.csv` using `ListingContractDate`, and validates that there
 are no missing mortgage rates after the merge. The enriched CSV outputs are
 saved locally under `outputs/week2_3/` and excluded from Git.
 
+To run the Week 4 starter cleaning script:
+
+```bash
+python week4_5_cleaning.py
+```
+
+The script reads the mortgage-enriched datasets from `outputs/week2_3/`, adds
+cleaning and quality-control flags, drops columns that are completely empty, and
+saves starter cleaned outputs plus reports under `outputs/week4_5/`.
+
 ## Next Steps
 
-The next project phase is Weeks 4-5 data cleaning and preparation. This will
-focus on date conversions, unnecessary column removal, missing value handling,
-numeric type checks, invalid numeric value flags, date consistency flags, and
-geographic data quality checks.
+The next project phase is the Week 5 finish pass for data cleaning. This will
+focus on deciding which flagged records or high-missing columns should be
+removed, finalizing missing value handling, confirming coordinate rules with the
+team, and saving the final analysis-ready cleaned datasets.
 
 ## Important Note
 

@@ -9,12 +9,12 @@ import pandas as pd
 DATA_DIR = Path(__file__).resolve().parent / "csv"
 OUTPUT_FILE = Path(__file__).resolve().parent / "sold.csv"
 START_MONTH = "2024-01"
-END_MONTH = "2026-05"
+END_MONTH = "2026-06"
 FILLED_COLUMNS = ["latfilled", "lonfilled"]
 
 
 def expected_months() -> list[str]:
-    """Return every required YYYYMM value from January 2024 through May 2026."""
+    """Return every required YYYYMM value from January 2024 through June 2026."""
     return [
         period.strftime("%Y%m")
         for period in pd.period_range(START_MONTH, END_MONTH, freq="M")
