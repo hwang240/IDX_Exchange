@@ -81,7 +81,7 @@ Verified Weeks 2-3 validation highlights:
 | Listing mortgage-rate missing values after merge | 0 |
 | Mortgage-rate months merged | January 2024 through June 2026 |
 
-### Week 4 - Data Cleaning and Preparation Starter
+### Weeks 4-5 - Data Cleaning and Preparation
 
 * Started the Weeks 4-5 cleaning script using the June-inclusive,
   mortgage-enriched sold and listing datasets.
@@ -98,15 +98,21 @@ Verified Weeks 2-3 validation highlights:
   `purchase_after_close_flag`, and `negative_timeline_flag`.
 * Added geographic quality flags for missing coordinates, zero coordinates,
   positive longitude, and implausible California coordinate values.
-* Saved starter cleaned datasets and reports locally under `outputs/week4_5/`.
+* Removed rows with clearly unusable core values, such as invalid living area,
+  negative days on market, invalid sold close price, or missing required date
+  fields.
+* Dropped non-core columns with more than 90% missing values while keeping core
+  market-analysis fields protected.
+* Saved final cleaned analysis-ready datasets and reports locally under
+  `outputs/week4_5/`.
   These generated files are excluded from Git.
 
-Verified Week 4 starter cleaning output:
+Verified Weeks 4-5 final cleaning output:
 
-| Dataset | Rows before | Rows after | Columns before | Columns after | All-null columns dropped |
+| Dataset | Rows before | Final rows | Rows removed | Columns before | Final columns |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Sold | 447,998 | 447,998 | 87 | 91 | 8 |
-| Listings | 573,911 | 573,911 | 78 | 82 | 8 |
+| Sold | 447,998 | 447,781 | 217 | 87 | 84 |
+| Listings | 573,911 | 573,510 | 401 | 78 | 77 |
 
 ## Running the Scripts
 
@@ -148,22 +154,22 @@ and onto `listings.csv` using `ListingContractDate`, and validates that there
 are no missing mortgage rates after the merge. The enriched CSV outputs are
 saved locally under `outputs/week2_3/` and excluded from Git.
 
-To run the Week 4 starter cleaning script:
+To run the Weeks 4-5 cleaning script:
 
 ```bash
 python week4_5_cleaning.py
 ```
 
 The script reads the mortgage-enriched datasets from `outputs/week2_3/`, adds
-cleaning and quality-control flags, drops columns that are completely empty, and
-saves starter cleaned outputs plus reports under `outputs/week4_5/`.
+cleaning and quality-control flags, removes rows with clearly unusable core
+values, drops all-null and high-missing non-core columns, and saves final
+cleaned outputs plus reports under `outputs/week4_5/`.
 
 ## Next Steps
 
-The next project phase is the Week 5 finish pass for data cleaning. This will
-focus on deciding which flagged records or high-missing columns should be
-removed, finalizing missing value handling, confirming coordinate rules with the
-team, and saving the final analysis-ready cleaned datasets.
+The next project phase is Week 6 feature engineering and market metrics. This
+will focus on creating analysis fields such as price ratio, price per square
+foot, year/month fields, listing-to-contract days, and contract-to-close days.
 
 ## Important Note
 

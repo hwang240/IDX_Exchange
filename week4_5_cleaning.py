@@ -1,7 +1,7 @@
 """
 Weeks 4-5: Data Cleaning and Preparation
 
-This starter script covers the Week 4 portion of the Weeks 4-5 handbook work:
+This script covers the Weeks 4-5 handbook work:
 
 1. Load the mortgage-enriched sold and listings datasets.
 2. Convert date fields to datetime format.
@@ -10,11 +10,12 @@ This starter script covers the Week 4 portion of the Weeks 4-5 handbook work:
 5. Add invalid numeric value flags.
 6. Add date consistency flags.
 7. Add geographic data quality flags.
-8. Save starter cleaned datasets and a cleaning report.
+8. Apply final Week 5 cleaning rules.
+9. Save final cleaned datasets and cleaning reports.
 
-The script intentionally flags questionable records instead of deleting them.
-This keeps the workflow auditable and lets Week 5 focus on final cleaning
-decisions, column drops, and any row-removal rules.
+The script intentionally keeps date and geographic quality flags in the final
+dataset. It removes only records with clearly unusable core numeric/date values
+and drops non-core columns with very high missingness.
 
 Confidential cleaned CSV outputs are written to outputs/week4_5/, which is
 ignored by Git through the repository .gitignore.
@@ -83,6 +84,8 @@ CORE_KEEP_COLUMNS = {
     "PostalCode",
     "rate_30yr_fixed",
 }
+
+HIGH_MISSING_THRESHOLD = 90.0
 
 
 def load_dataset(path: Path, dataset_name: str) -> pd.DataFrame:
@@ -304,8 +307,120 @@ def missing_summary(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     )
 
 
+def drop_high_missing_columns(
+    df: pd.DataFrame,
+    dataset_name: str,
+    threshold: float = HIGH_MISSING_THRESHOLD,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Drop non-core columns above the missing-value threshold.
+
+    Core analysis columns and flag columns are protected because they are useful
+    for Tableau filtering and for documenting data quality.
+    """
+    missing_pct = df.isna().mean() * 100
+    drop_columns = [
+        column
+        for column, pct in missing_pct.items()
+        if pct > threshold
+        and column not in CORE_KEEP_COLUMNS
+        and not column.endswith("_flag")
+    ]
+    report = pd.DataFrame(
+        [
+            {
+                "dataset": dataset_name,
+                "dropped_column": column,
+                "missing_pct": float(missing_pct[column]),
+                "reason": f"non-core column above {threshold:.0f}% missing",
+            }
+            for column in drop_columns
+        ]
+    )
+    return df.drop(columns=drop_columns), report
+
+
+def final_row_removal_rules(df: pd.DataFrame, dataset_name: str) -> dict[str, pd.Series]:
+    """
+    Define final row-removal rules.
+
+    Sold rows need a valid close price and close date for transaction analysis.
+    Listings rows may legitimately have missing ClosePrice/CloseDate, so the
+    listing rules focus on listing date and physical/numeric fields.
+    """
+    rules = {
+        "invalid_living_area": df["invalid_living_area_flag"],
+        "invalid_days_on_market": df["invalid_days_on_market_flag"],
+        "invalid_bedrooms": df["invalid_bedrooms_flag"],
+        "invalid_bathrooms": df["invalid_bathrooms_flag"],
+    }
+
+    if dataset_name == "sold":
+        rules["invalid_close_price"] = df["invalid_close_price_flag"]
+        rules["missing_close_date"] = df["CloseDate"].isna()
+        rules["missing_listing_contract_date"] = df["ListingContractDate"].isna()
+    else:
+        rules["missing_listing_contract_date"] = df["ListingContractDate"].isna()
+
+    return rules
+
+
+def apply_final_cleaning_rules(
+    df: pd.DataFrame,
+    dataset_name: str,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Remove clearly unusable rows and high-missing non-core columns."""
+    working = df.copy()
+    row_rules = final_row_removal_rules(working, dataset_name)
+    removal_mask = pd.Series(False, index=working.index)
+    row_report_rows = []
+
+    for rule_name, mask in row_rules.items():
+        mask = mask.fillna(False)
+        row_report_rows.append(
+            {
+                "dataset": dataset_name,
+                "rule": rule_name,
+                "rows_matching_rule": int(mask.sum()),
+            }
+        )
+        removal_mask = removal_mask | mask
+
+    rows_before = len(working)
+    working = working.loc[~removal_mask].copy()
+    rows_removed = rows_before - len(working)
+
+    working, column_drop_report = drop_high_missing_columns(working, dataset_name)
+
+    summary = pd.DataFrame(
+        [
+            {
+                "dataset": dataset_name,
+                "rule": "total_unique_rows_removed",
+                "rows_matching_rule": rows_removed,
+            }
+        ]
+        + row_report_rows
+    )
+
+    if not column_drop_report.empty:
+        column_drop_report["rows_matching_rule"] = None
+        column_drop_report = column_drop_report.rename(columns={"reason": "rule"})
+        column_drop_report["rule"] = "dropped_column: " + column_drop_report["dropped_column"]
+        column_drop_report = column_drop_report[
+            ["dataset", "rule", "rows_matching_rule", "missing_pct"]
+        ]
+    else:
+        column_drop_report = pd.DataFrame(
+            columns=["dataset", "rule", "rows_matching_rule", "missing_pct"]
+        )
+
+    final_report = pd.concat([summary, column_drop_report], ignore_index=True)
+    return working, final_report
+
+
 def clean_dataset(df: pd.DataFrame, dataset_name: str) -> dict[str, object]:
-    """Run starter cleaning steps for one dataset."""
+    """Run starter and final cleaning steps for one dataset."""
     before_rows, before_columns = df.shape
 
     cleaned, date_report = convert_dates(df)
@@ -315,24 +430,34 @@ def clean_dataset(df: pd.DataFrame, dataset_name: str) -> dict[str, object]:
     cleaned = add_date_consistency_flags(cleaned)
     cleaned = add_geographic_flags(cleaned)
 
-    after_rows, after_columns = cleaned.shape
+    starter_rows, starter_columns = cleaned.shape
+    final_cleaned, final_rule_report = apply_final_cleaning_rules(cleaned, dataset_name)
+    final_rows, final_columns = final_cleaned.shape
 
     return {
         "dataset_name": dataset_name,
-        "cleaned": cleaned,
+        "starter_cleaned": cleaned,
+        "final_cleaned": final_cleaned,
         "date_report": date_report.assign(dataset=dataset_name),
         "numeric_report": numeric_report.assign(dataset=dataset_name),
         "dropped_columns": dropped_columns,
+        "final_rule_report": final_rule_report,
         "row_summary": {
             "dataset": dataset_name,
             "rows_before": before_rows,
-            "rows_after": after_rows,
+            "starter_rows_after": starter_rows,
+            "final_rows_after": final_rows,
+            "rows_removed_in_final_pass": starter_rows - final_rows,
             "columns_before": before_columns,
-            "columns_after": after_columns,
+            "starter_columns_after": starter_columns,
+            "final_columns_after": final_columns,
             "columns_dropped_as_all_null": len(dropped_columns),
+            "additional_columns_dropped_in_final_pass": starter_columns - final_columns,
         },
-        "flag_summary": flag_summary(cleaned, dataset_name),
-        "missing_summary": missing_summary(cleaned, dataset_name),
+        "starter_flag_summary": flag_summary(cleaned, dataset_name),
+        "final_flag_summary": flag_summary(final_cleaned, dataset_name),
+        "starter_missing_summary": missing_summary(cleaned, dataset_name),
+        "final_missing_summary": missing_summary(final_cleaned, dataset_name),
     }
 
 
@@ -380,6 +505,61 @@ def write_markdown_report(
     (OUTPUT_DIR / "week4_5_cleaning_report.md").write_text("\n".join(lines))
 
 
+def write_final_markdown_report(
+    row_summary: pd.DataFrame,
+    final_rules: pd.DataFrame,
+    date_report: pd.DataFrame,
+    numeric_report: pd.DataFrame,
+    flags: pd.DataFrame,
+) -> None:
+    """Write the final Week 4-5 cleaning deliverable report."""
+    lines = [
+        "# Weeks 4-5 Final Cleaning Report",
+        "",
+        "This report documents the final cleaning pass used to create the analysis-ready CSV outputs. The script keeps quality-control flags for date and coordinate issues so analysts can filter them in Tableau instead of losing that audit trail.",
+        "",
+        "## Final before/after row and column counts",
+        "",
+        row_summary.to_markdown(index=False),
+        "",
+        "## Final row-removal and column-drop rules",
+        "",
+        final_rules.fillna("").to_markdown(index=False),
+        "",
+        "## Data type confirmations - dates",
+        "",
+        date_report.to_markdown(index=False),
+        "",
+        "## Data type confirmations - numeric fields",
+        "",
+        numeric_report.to_markdown(index=False),
+        "",
+        "## Date consistency and data quality flag counts",
+        "",
+        flags.to_markdown(index=False),
+        "",
+        "## Geographic data quality summary",
+        "",
+        flags[flags["flag"].isin([
+            "missing_coordinates_flag",
+            "zero_coordinates_flag",
+            "positive_longitude_flag",
+            "implausible_ca_coordinates_flag",
+        ])].to_markdown(index=False),
+        "",
+        "## Transformation rationale",
+        "",
+        "- Date columns were parsed with `pd.to_datetime(..., errors='coerce')` so invalid date strings become null and can be audited.",
+        "- Numeric columns were parsed with `pd.to_numeric(..., errors='coerce')` so invalid numeric strings become null and can be audited.",
+        "- Completely empty columns were removed because they provide no analytical value.",
+        "- Non-core columns above 90% missing were removed to reduce noise while keeping protected market-analysis fields.",
+        "- Rows with clearly unusable core numeric/date values were removed from the final CSVs.",
+        "- Date consistency and geographic issues were kept as boolean flags for filtering and review.",
+        "",
+    ]
+    (OUTPUT_DIR / "week4_5_final_cleaning_report.md").write_text("\n".join(lines))
+
+
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -391,10 +571,16 @@ def main() -> None:
     sold_result = clean_dataset(sold, "sold")
     listings_result = clean_dataset(listings, "listings")
 
-    print("Saving starter cleaned outputs and reports...")
-    sold_result["cleaned"].to_csv(OUTPUT_DIR / "sold_cleaning_started.csv", index=False)
-    listings_result["cleaned"].to_csv(
+    print("Saving starter and final cleaned outputs and reports...")
+    sold_result["starter_cleaned"].to_csv(
+        OUTPUT_DIR / "sold_cleaning_started.csv", index=False
+    )
+    listings_result["starter_cleaned"].to_csv(
         OUTPUT_DIR / "listings_cleaning_started.csv", index=False
+    )
+    sold_result["final_cleaned"].to_csv(OUTPUT_DIR / "sold_cleaned.csv", index=False)
+    listings_result["final_cleaned"].to_csv(
+        OUTPUT_DIR / "listings_cleaned.csv", index=False
     )
 
     row_summary = pd.DataFrame(
@@ -416,11 +602,19 @@ def main() -> None:
         ignore_index=True,
     )
     flags = pd.concat(
-        [sold_result["flag_summary"], listings_result["flag_summary"]],
+        [sold_result["final_flag_summary"], listings_result["final_flag_summary"]],
         ignore_index=True,
     )
-    missing = pd.concat(
-        [sold_result["missing_summary"], listings_result["missing_summary"]],
+    final_rules = pd.concat(
+        [sold_result["final_rule_report"], listings_result["final_rule_report"]],
+        ignore_index=True,
+    )
+    starter_missing = pd.concat(
+        [sold_result["starter_missing_summary"], listings_result["starter_missing_summary"]],
+        ignore_index=True,
+    )
+    final_missing = pd.concat(
+        [sold_result["final_missing_summary"], listings_result["final_missing_summary"]],
         ignore_index=True,
     )
 
@@ -429,11 +623,14 @@ def main() -> None:
     date_report.to_csv(OUTPUT_DIR / "date_type_conversion_report.csv", index=False)
     numeric_report.to_csv(OUTPUT_DIR / "numeric_type_conversion_report.csv", index=False)
     flags.to_csv(OUTPUT_DIR / "cleaning_flag_counts.csv", index=False)
-    missing.to_csv(OUTPUT_DIR / "post_cleaning_missing_summary.csv", index=False)
+    final_rules.to_csv(OUTPUT_DIR / "final_cleaning_rules_report.csv", index=False)
+    starter_missing.to_csv(OUTPUT_DIR / "post_starter_cleaning_missing_summary.csv", index=False)
+    final_missing.to_csv(OUTPUT_DIR / "final_cleaning_missing_summary.csv", index=False)
 
     write_markdown_report(row_summary, dropped_columns, date_report, numeric_report, flags)
+    write_final_markdown_report(row_summary, final_rules, date_report, numeric_report, flags)
 
-    print("\nWeek 4 starter cleaning complete.")
+    print("\nWeeks 4-5 final cleaning complete.")
     print(row_summary.to_string(index=False))
     print(f"Reports saved to: {OUTPUT_DIR}")
 
