@@ -114,6 +114,22 @@ Verified Weeks 4-5 final cleaning output:
 | Sold | 447,998 | 447,781 | 217 | 87 | 84 |
 | Listings | 573,911 | 573,510 | 401 | 78 | 77 |
 
+### Week 6 - School District Mapping
+
+* Added a school district mapping script using the California School District
+  Areas 2025-26 GeoJSON boundary file.
+* Installed GeoPandas and supporting geospatial packages for spatial joins.
+* Loaded the school district boundary file and filtered it to
+  `DistrictType == "Unified"`.
+* Converted each property's `Latitude` and `Longitude` values into geographic
+  points.
+* Used a spatial join to assign each property to the Unified School District
+  polygon containing that property.
+* Added `UnifiedSchoolDistrict` and `UnifiedSchoolDistrictCounty` fields to
+  the cleaned sold and listings datasets.
+* Saved enriched Week 6 CSV outputs and mapping reports locally under
+  `outputs/week6/`. These generated files are excluded from Git.
+
 ## Running the Scripts
 
 Install Pandas if it is not already available:
@@ -165,11 +181,23 @@ cleaning and quality-control flags, removes rows with clearly unusable core
 values, drops all-null and high-missing non-core columns, and saves final
 cleaned outputs plus reports under `outputs/week4_5/`.
 
+To run the Week 6 school district mapping script:
+
+```bash
+python -m pip install geopandas shapely pyogrio
+python week6_school_district_mapping.py
+```
+
+The script reads the cleaned Week 4-5 datasets from `outputs/week4_5/` and the
+California School District Areas 2025-26 GeoJSON downloaded locally from
+California Open Data. It filters the boundary file to Unified districts,
+spatially joins property coordinates to those district polygons, and saves
+enriched local outputs plus summary reports under `outputs/week6/`.
+
 ## Next Steps
 
-The next project phase is Week 6 feature engineering and market metrics. This
-will focus on creating analysis fields such as price ratio, price per square
-foot, year/month fields, listing-to-contract days, and contract-to-close days.
+The next project phase is to use the cleaned and school-district-enriched
+datasets for market analysis and Tableau dashboard development.
 
 ## Important Note
 
