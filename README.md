@@ -130,6 +130,46 @@ Verified Weeks 4-5 final cleaning output:
 * Saved enriched Week 6 CSV outputs and mapping reports locally under
   `outputs/week6/`. These generated files are excluded from Git.
 
+Verified Week 6 school district mapping output:
+
+| Dataset | Rows | Valid coordinate rows | Rows assigned to Unified School District | Unique Unified districts |
+| --- | ---: | ---: | ---: | ---: |
+| Sold | 447,781 | 431,526 | 327,692 | 331 |
+| Listings | 573,510 | 492,909 | 379,583 | 337 |
+
+### Week 7 - Outlier Detection and Data Quality
+
+* Created an IQR-based outlier detection script for the handbook's key numeric
+  fields: `ClosePrice`, `LivingArea`, and `DaysOnMarket`.
+* Calculated Q1, Q3, IQR, lower bounds, and upper bounds for each field.
+* Added field-level outlier flags instead of deleting records outright:
+  `ClosePrice_iqr_outlier_flag`, `LivingArea_iqr_outlier_flag`, and
+  `DaysOnMarket_iqr_outlier_flag`.
+* Added `any_iqr_outlier_flag` to identify records flagged by any Week 7
+  outlier rule.
+* Saved both full flagged datasets and separate filtered analysis datasets.
+* Produced a written before/after comparison of dataset size and median values.
+* Saved local Week 7 outputs and reports under `outputs/week7/`. These
+  generated files are excluded from Git.
+
+Verified Week 7 outlier filtering output:
+
+| Dataset | Rows before | Rows after | Rows removed | Percent removed |
+| --- | ---: | ---: | ---: | ---: |
+| Sold | 447,781 | 377,505 | 70,276 | 15.69% |
+| Listings | 573,510 | 493,118 | 80,392 | 14.02% |
+
+Median values before vs. after filtering:
+
+| Dataset | Field | Median before | Median after | Change |
+| --- | --- | ---: | ---: | ---: |
+| Sold | ClosePrice | $825,000 | $787,500 | -$37,500 |
+| Sold | LivingArea | 1,646 | 1,572 | -74 |
+| Sold | DaysOnMarket | 18 | 16 | -2 |
+| Listings | ClosePrice | $854,300 | $827,500 | -$26,800 |
+| Listings | LivingArea | 1,671 | 1,613 | -58 |
+| Listings | DaysOnMarket | 10 | 9 | -1 |
+
 ## Running the Scripts
 
 Install Pandas if it is not already available:
@@ -193,6 +233,17 @@ California School District Areas 2025-26 GeoJSON downloaded locally from
 California Open Data. It filters the boundary file to Unified districts,
 spatially joins property coordinates to those district polygons, and saves
 enriched local outputs plus summary reports under `outputs/week6/`.
+
+To run the Week 7 outlier detection script:
+
+```bash
+python week7_outlier_detection.py
+```
+
+The script reads the Week 6 school-district-enriched datasets when available,
+adds IQR outlier flag columns for `ClosePrice`, `LivingArea`, and
+`DaysOnMarket`, saves full flagged datasets, saves separate filtered analysis
+datasets, and writes before/after comparison reports under `outputs/week7/`.
 
 ## Next Steps
 
