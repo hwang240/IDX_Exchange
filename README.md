@@ -170,6 +170,39 @@ Median values before vs. after filtering:
 | Listings | LivingArea | 1,671 | 1,613 | -58 |
 | Listings | DaysOnMarket | 10 | 9 | -1 |
 
+### Week 8 - Feature Engineering and Market Summary Tables
+
+* Created a feature engineering script using the Week 7 outlier-filtered sold
+  and listings datasets.
+* Added Tableau-ready date fields: `analysis_date`, `analysis_year`,
+  `analysis_month`, `analysis_quarter`, and `year_month`.
+* Added pricing and value features such as `close_price_per_sqft`,
+  `list_price_per_sqft`, `close_to_list_ratio`, `close_minus_list_price`,
+  `list_to_original_list_ratio`, and `list_minus_original_list_price`.
+* Added timeline features including `listing_to_contract_days`,
+  `contract_to_close_days`, and `listing_to_close_days`.
+* Added Tableau-friendly categorical bands for close price and days on market.
+* Created grouped market summary tables by month, county, city, and Unified
+  School District.
+* Saved feature-engineered datasets and summary CSVs locally under
+  `outputs/week8/`. These generated files are excluded from Git.
+
+Verified Week 8 feature engineering output:
+
+| Dataset | Feature-engineered rows | Analysis month coverage | Price-per-sqft completeness |
+| --- | ---: | ---: | ---: |
+| Sold | 377,505 | 100.00% | 99.97% |
+| Listings | 493,118 | 100.00% | 99.90% for list price per sqft |
+
+Week 8 summary tables created:
+
+| Summary level | Sold table | Listings table |
+| --- | --- | --- |
+| Monthly | `sold_monthly_market_summary.csv` | `listings_monthly_market_summary.csv` |
+| County | `sold_county_market_summary.csv` | `listings_county_market_summary.csv` |
+| City | `sold_city_market_summary.csv` | `listings_city_market_summary.csv` |
+| School district | `sold_school_district_market_summary.csv` | `listings_school_district_market_summary.csv` |
+
 ## Running the Scripts
 
 Install Pandas if it is not already available:
@@ -245,10 +278,21 @@ adds IQR outlier flag columns for `ClosePrice`, `LivingArea`, and
 `DaysOnMarket`, saves full flagged datasets, saves separate filtered analysis
 datasets, and writes before/after comparison reports under `outputs/week7/`.
 
+To run the Week 8 feature engineering script:
+
+```bash
+python week8_feature_engineering.py
+```
+
+The script reads the Week 7 outlier-filtered datasets, creates Tableau-ready
+analysis fields, saves feature-engineered sold and listings datasets, and
+creates market summary tables by month, county, city, and Unified School
+District under `outputs/week8/`.
+
 ## Next Steps
 
-The next project phase is to use the cleaned and school-district-enriched
-datasets for market analysis and Tableau dashboard development.
+The next project phase is Tableau dashboard development using the Week 8
+feature-engineered datasets and summary tables.
 
 ## Important Note
 
