@@ -203,6 +203,26 @@ Week 8 summary tables created:
 | City | `sold_city_market_summary.csv` | `listings_city_market_summary.csv` |
 | School district | `sold_school_district_market_summary.csv` | `listings_school_district_market_summary.csv` |
 
+### Week 9 - Tableau Dashboard Development and Reporting
+
+* Used the Week 8 feature-engineered datasets and summary tables to create
+  Tableau Public dashboards.
+* Built a market analysis dashboard for price trends, sales volume, market
+  speed, and sale-to-list behavior.
+* Built a school district dashboard to compare residential market performance
+  by Unified School District.
+* Published Tableau dashboard links for external review while keeping
+  confidential MLS datasets and generated output files out of GitHub.
+* Added a dated project progress note under `docs/` summarizing the current
+  dashboard and final reporting phase.
+
+Week 9 Tableau deliverables:
+
+| Dashboard | Link |
+| --- | --- |
+| Market Analysis | [IDX Exchange Market Analysis Dashboard](https://public.tableau.com/app/profile/david.wang1702/viz/market_analysis_17870424882870/IDXExchangeMarketAnalysisDashboard) |
+| School District Market Dashboard | [School District Market Dashboard](https://public.tableau.com/app/profile/david.wang1702/viz/school_district_market_dashboard/SchoolDistrictMarketDashboard) |
+
 ## Running the Scripts
 
 Install Pandas if it is not already available:
@@ -291,8 +311,8 @@ District under `outputs/week8/`.
 
 ## Next Steps
 
-The next project phase is Tableau dashboard development using the Week 8
-feature-engineered datasets and summary tables.
+The next project phase is final report writing, dashboard review, and any
+requested refinements to the Tableau Public dashboards.
 
 ## Important Note
 
